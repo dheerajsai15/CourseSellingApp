@@ -1,16 +1,50 @@
 const { Router } = require("express")
+const { userModel } = require("../db")
+const jwt = require("jsonwebtoken")
+const { JWT_USER_PASSWORD } = require("../config")
+const { userMiddleware } = require("../middleware/user")
 
 const userRouter = Router();
 
-userRouter.post('/signup', (req,res) => {})
+userRouter.post('/signup',async (req,res) => {
+    const { email,password,firstName,lastName } = req.body;
 
-userRouter.post('/signin',(req,res) => {
+    await userModel.create({
+        email,
+        password,
+        firstName,
+        lastName
+    });
+
     res.json({
-        message: "Signup endpoint"
+        message: "Signup succeded!"
     })
 })
 
-userRouter.get('/purchases',(req,res) => {})
+userRouter.post('/signin',async (req,res) => {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({
+        email: email,
+        password: password
+    })
+    if(user){
+        const token = jwt.sign({
+            id: user._id
+        },JWT_USER_PASSWORD);
+        res.json({
+            message: "Signin Successful",
+            token
+        })
+    }
+    else{
+        res.status(403).json({
+            message: "Invalid Username or password"
+        })
+    }
+})
+
+userRouter.get('/purchases', userMiddleware, (req,res) => {})
 
 module.exports = {
     userRouter: userRouter
